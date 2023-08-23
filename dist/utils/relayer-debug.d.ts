@@ -1,4 +1,4 @@
-import { RelayerDebugger } from '../models/export-models';
+import { RelayerDebugger } from '../models/export-models.js';
 export declare class RelayerDebug {
     private static debug;
     static setDebugger(debug: RelayerDebugger): void;

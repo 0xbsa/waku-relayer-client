@@ -1,1 +1,1 @@
-{"version":3,"file":"index.js","sourceRoot":"","sources":["../../src/transact/index.ts"],"names":[],"mappings":";;;;;;;;;;;;;;;;AAAA,wDAAsC","sourcesContent":["export * from './relayer-transaction';\n"]}
+{"version":3,"file":"index.js","sourceRoot":"","sources":["../../src/transact/index.ts"],"names":[],"mappings":"AAAA,cAAc,0BAA0B,CAAC","sourcesContent":["export * from './relayer-transaction.js';\n"]}

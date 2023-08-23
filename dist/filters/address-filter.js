@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.AddressFilter = void 0;
-class AddressFilter {
+export class AddressFilter {
     static setAllowlist(allowlist) {
         this.allowlist = allowlist;
     }
@@ -19,5 +16,4 @@ class AddressFilter {
             .sort();
     }
 }
-exports.AddressFilter = AddressFilter;
 //# sourceMappingURL=address-filter.js.map

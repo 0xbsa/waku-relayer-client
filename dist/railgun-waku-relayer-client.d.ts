@@ -1,5 +1,5 @@
 import { Chain, SelectedRelayer } from '@railgun-community/shared-models';
-import { RelayerConnectionStatusCallback, RelayerDebugger, RelayerOptions } from './models/export-models';
+import { RelayerConnectionStatusCallback, RelayerDebugger, RelayerOptions } from './models/export-models.js';
 export declare class RailgunWakuRelayerClient {
     private static chain;
     private static statusCallback;

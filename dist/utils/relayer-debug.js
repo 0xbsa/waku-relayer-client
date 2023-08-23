@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.RelayerDebug = void 0;
-class RelayerDebug {
+export class RelayerDebug {
     static setDebugger(debug) {
         this.debug = debug;
     }
@@ -19,5 +16,4 @@ class RelayerDebug {
         }
     }
 }
-exports.RelayerDebug = RelayerDebug;
 //# sourceMappingURL=relayer-debug.js.map

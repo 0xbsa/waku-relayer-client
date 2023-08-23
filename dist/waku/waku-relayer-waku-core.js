@@ -1,150 +1,130 @@
-"use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var _a;
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.WakuRelayerWakuCore = void 0;
-const shared_models_1 = require("@railgun-community/shared-models");
-const core_1 = require("@waku/core");
-const interfaces_1 = require("@waku/interfaces");
-const waku_observers_1 = require("./waku-observers");
-const relayer_debug_1 = require("../utils/relayer-debug");
-const relayer_fee_cache_1 = require("../fees/relayer-fee-cache");
-const conversion_1 = require("../utils/conversion");
-const is_defined_1 = require("../utils/is-defined");
-const bootstrap_1 = require("@libp2p/bootstrap");
-const create_1 = require("@waku/create");
-const constants_1 = require("../models/constants");
-class WakuRelayerWakuCore {
+import { promiseTimeout } from '@railgun-community/shared-models';
+import { waitForRemotePeer, createEncoder } from '@waku/core';
+import { Protocols } from '@waku/interfaces';
+import { WakuObservers } from './waku-observers.js';
+import { RelayerDebug } from '../utils/relayer-debug.js';
+import { RelayerFeeCache } from '../fees/relayer-fee-cache.js';
+import { utf8ToBytes } from '../utils/conversion.js';
+import { isDefined } from '../utils/is-defined.js';
+import { bootstrap } from '@libp2p/bootstrap';
+import { createRelayNode } from '@waku/create';
+import { WAKU_RAILGUN_DEFAULT_PEERS, WAKU_RAILGUN_PUB_SUB_TOPIC, } from '../models/constants.js';
+export class WakuRelayerWakuCore {
     static setRelayerOptions(relayerOptions) {
-        if ((0, is_defined_1.isDefined)(relayerOptions.pubSubTopic)) {
+        if (isDefined(relayerOptions.pubSubTopic)) {
             WakuRelayerWakuCore.pubSubTopic = relayerOptions.pubSubTopic;
         }
         if (relayerOptions.additionalDirectPeers) {
             WakuRelayerWakuCore.additionalDirectPeers =
                 relayerOptions.additionalDirectPeers;
         }
-        if ((0, is_defined_1.isDefined)(relayerOptions.peerDiscoveryTimeout)) {
+        if (isDefined(relayerOptions.peerDiscoveryTimeout)) {
             WakuRelayerWakuCore.peerDiscoveryTimeout =
                 relayerOptions.peerDiscoveryTimeout;
         }
     }
     static getMeshPeerCount() {
-        var _b, _c;
-        return (_c = (_b = this.waku) === null || _b === void 0 ? void 0 : _b.relay.getMeshPeers().length) !== null && _c !== void 0 ? _c : 0;
+        return this.waku?.relay.getMeshPeers().length ?? 0;
     }
-    static waitForRemotePeer(waku) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const protocols = [interfaces_1.Protocols.Relay];
-                yield (0, shared_models_1.promiseTimeout)((0, core_1.waitForRemotePeer)(waku, protocols), WakuRelayerWakuCore.peerDiscoveryTimeout);
+    static async waitForRemotePeer(waku) {
+        try {
+            const protocols = [Protocols.Relay];
+            await promiseTimeout(waitForRemotePeer(waku, protocols), WakuRelayerWakuCore.peerDiscoveryTimeout);
+        }
+        catch (err) {
+            if (!(err instanceof Error)) {
+                throw err;
             }
-            catch (err) {
-                if (!(err instanceof Error)) {
-                    throw err;
-                }
-                relayer_debug_1.RelayerDebug.error(err);
-                throw new Error(err.message);
-            }
-        });
+            RelayerDebug.error(err);
+            throw new Error(err.message);
+        }
     }
-    static relayMessage(data, contentTopic) {
-        var _b;
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!((_b = WakuRelayerWakuCore.waku) === null || _b === void 0 ? void 0 : _b.relay)) {
-                throw new Error('No Waku Relay found.');
+    static async relayMessage(data, contentTopic) {
+        if (!WakuRelayerWakuCore.waku?.relay) {
+            throw new Error('No Waku Relay found.');
+        }
+        const dataString = JSON.stringify(data);
+        const payload = utf8ToBytes(dataString);
+        const message = { payload };
+        try {
+            await WakuRelayerWakuCore.waku.relay.send(createEncoder({ contentTopic }), message);
+        }
+        catch (err) {
+            if (!(err instanceof Error)) {
+                throw err;
             }
-            const dataString = JSON.stringify(data);
-            const payload = (0, conversion_1.utf8ToBytes)(dataString);
-            const message = { payload };
-            try {
-                yield WakuRelayerWakuCore.waku.relay.send((0, core_1.createEncoder)({ contentTopic }), message);
-            }
-            catch (err) {
-                if (!(err instanceof Error)) {
-                    throw err;
-                }
-                relayer_debug_1.RelayerDebug.error(err);
-            }
-        });
+            RelayerDebug.error(err);
+        }
     }
 }
-exports.WakuRelayerWakuCore = WakuRelayerWakuCore;
 _a = WakuRelayerWakuCore;
 WakuRelayerWakuCore.hasError = false;
-WakuRelayerWakuCore.pubSubTopic = constants_1.WAKU_RAILGUN_PUB_SUB_TOPIC;
+WakuRelayerWakuCore.pubSubTopic = WAKU_RAILGUN_PUB_SUB_TOPIC;
 WakuRelayerWakuCore.additionalDirectPeers = [];
 WakuRelayerWakuCore.peerDiscoveryTimeout = 60000;
-WakuRelayerWakuCore.initWaku = (chain) => __awaiter(void 0, void 0, void 0, function* () {
+WakuRelayerWakuCore.initWaku = async (chain) => {
     try {
-        yield WakuRelayerWakuCore.connect();
+        await WakuRelayerWakuCore.connect();
         if (!WakuRelayerWakuCore.waku) {
-            relayer_debug_1.RelayerDebug.log('No waku instance found');
+            RelayerDebug.log('No waku instance found');
             return;
         }
-        waku_observers_1.WakuObservers.resetCurrentChain();
-        yield waku_observers_1.WakuObservers.setObserversForChain(WakuRelayerWakuCore.waku, chain);
+        WakuObservers.resetCurrentChain();
+        await WakuObservers.setObserversForChain(WakuRelayerWakuCore.waku, chain);
     }
     catch (err) {
         if (!(err instanceof Error)) {
             throw err;
         }
-        relayer_debug_1.RelayerDebug.error(err);
+        RelayerDebug.error(err);
         throw err;
     }
-});
-WakuRelayerWakuCore.reinitWaku = (chain) => __awaiter(void 0, void 0, void 0, function* () {
-    if ((0, is_defined_1.isDefined)(WakuRelayerWakuCore.waku) &&
+};
+WakuRelayerWakuCore.reinitWaku = async (chain) => {
+    if (isDefined(WakuRelayerWakuCore.waku) &&
         WakuRelayerWakuCore.waku.isStarted()) {
-        yield WakuRelayerWakuCore.disconnect();
+        await WakuRelayerWakuCore.disconnect();
     }
-    relayer_fee_cache_1.RelayerFeeCache.resetCache(chain);
-    yield WakuRelayerWakuCore.initWaku(chain);
-});
-WakuRelayerWakuCore.disconnect = () => __awaiter(void 0, void 0, void 0, function* () {
-    var _b;
-    yield ((_b = WakuRelayerWakuCore.waku) === null || _b === void 0 ? void 0 : _b.stop());
+    RelayerFeeCache.resetCache(chain);
+    await WakuRelayerWakuCore.initWaku(chain);
+};
+WakuRelayerWakuCore.disconnect = async () => {
+    await WakuRelayerWakuCore.waku?.stop();
     WakuRelayerWakuCore.waku = undefined;
-});
-WakuRelayerWakuCore.connect = () => __awaiter(void 0, void 0, void 0, function* () {
+};
+WakuRelayerWakuCore.connect = async () => {
     try {
         WakuRelayerWakuCore.hasError = false;
-        relayer_debug_1.RelayerDebug.log(`Creating waku relay client`);
+        RelayerDebug.log(`Creating waku relay client`);
         const peers = [
-            ...constants_1.WAKU_RAILGUN_DEFAULT_PEERS,
+            ...WAKU_RAILGUN_DEFAULT_PEERS,
             ..._a.additionalDirectPeers,
         ];
         const waitTimeoutBeforeBootstrap = 250;
-        const waku = yield (0, create_1.createRelayNode)({
+        const waku = await createRelayNode({
             pubSubTopic: WakuRelayerWakuCore.pubSubTopic,
             libp2p: {
                 peerDiscovery: [
-                    (0, bootstrap_1.bootstrap)({
+                    bootstrap({
                         list: peers,
                         timeout: waitTimeoutBeforeBootstrap,
                     }),
                 ],
             },
         });
-        relayer_debug_1.RelayerDebug.log('Start Waku.');
-        yield waku.start();
-        relayer_debug_1.RelayerDebug.log('Waiting for remote peer.');
-        yield _a.waitForRemotePeer(waku);
-        if (!(0, is_defined_1.isDefined)(waku.relay)) {
+        RelayerDebug.log('Start Waku.');
+        await waku.start();
+        RelayerDebug.log('Waiting for remote peer.');
+        await _a.waitForRemotePeer(waku);
+        if (!isDefined(waku.relay)) {
             throw new Error('No Waku Relay instantiated.');
         }
-        relayer_debug_1.RelayerDebug.log('Waku peers:');
+        RelayerDebug.log('Waku peers:');
         for (const peer of waku.relay.getMeshPeers()) {
-            relayer_debug_1.RelayerDebug.log(JSON.stringify(peer));
+            RelayerDebug.log(JSON.stringify(peer));
         }
-        relayer_debug_1.RelayerDebug.log('Connected to Waku');
+        RelayerDebug.log('Connected to Waku');
         WakuRelayerWakuCore.waku = waku;
         WakuRelayerWakuCore.hasError = false;
     }
@@ -155,5 +135,5 @@ WakuRelayerWakuCore.connect = () => __awaiter(void 0, void 0, void 0, function* 
         WakuRelayerWakuCore.hasError = true;
         throw err;
     }
-});
+};
 //# sourceMappingURL=waku-relayer-waku-core.js.map

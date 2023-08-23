@@ -1,6 +1,6 @@
 import { Chain } from '@railgun-community/shared-models';
 import { RelayNode } from '@waku/interfaces';
-import { RelayerOptions } from '../models';
+import { RelayerOptions } from '../models/index.js';
 export declare class WakuRelayerWakuCore {
     static hasError: boolean;
     static waku: Optional<RelayNode>;
